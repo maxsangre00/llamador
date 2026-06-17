@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Control - Sistema de Turnos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#2563eb',
+                        success: '#16a34a',
+                        warning: '#eab308',
+                        danger: '#dc2626',
+                        dark: '#1e293b',
+                        light: '#f8fafc'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .btn {
+                @apply px-5 py-3 rounded-lg font-medium transition-all duration-200 flex items-center justify-center gap-2 shadow-sm hover:shadow-md active:scale-95;
+            }
+            .btn-lg {
+                @apply px-6 py-4 text-lg;
+            }
+            .btn-nav {
+                @apply w-14 h-14 rounded-full flex items-center justify-center text-2xl font-bold;
+            }
+            .panel-shadow {
+                box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+            }
+            .estado-conectado {
+                @apply text-green-600 text-sm font-medium;
+            }
+            .estado-desconectado {
+                @apply text-red-600 text-sm font-medium;
+            }
+            /* Estilos para el modal centrado */
+            .modal-overlay {
+                @apply fixed inset-0 bg-black/70 flex items-center justify-center z-50 hidden;
+            }
+            .modal-content {
+                @apply bg-white rounded-2xl p-8 w-full max-w-md text-center panel-shadow;
+            }
+            .modal-titulo {
+                @apply text-2xl font-bold text-danger mb-4 flex items-center justify-center gap-2;
+            }
+            .modal-texto {
+                @apply text-gray-700 mb-6 leading-relaxed;
+            }
+            .modal-botones {
+                @apply flex gap-4 justify-center;
+            }
+            .btn-si {
+                @apply px-6 py-3 rounded-lg font-medium bg-danger text-white hover:bg-danger/90 transition-all cursor-pointer;
+            }
+            .btn-no {
+                @apply px-6 py-3 rounded-lg font-medium bg-gray-300 text-gray-800 hover:bg-gray-400 transition-all cursor-pointer;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-slate-100 to-slate-200 min-h-screen flex items-center justify-center p-4">
+
+    <!-- MODAL DE CONFIRMACIÓN CENTRADO -->
+    <div id="modalConfirmacion" class="modal-overlay">
+        <div class="modal-content">
+            <h3 class="modal-titulo">
+                <i class="fa fa-exclamation-triangle"></i>
+                Atención
+            </h3>
+            <p class="modal-texto">¿Estás seguro que querés reiniciar todo el sistema?<br>Se borrará todo el historial de llamadas y no se podrá recuperar.</p>
+            <div class="modal-botones">
+                <button id="btnConfirmarReinicio" class="btn-si">Sí, reiniciar</button>
+                <button id="btnCancelarReinicio" class="btn-no">No, cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PANEL PRINCIPAL -->
+    <div class="bg-white rounded-2xl p-8 w-full max-w-md panel-shadow">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-bold text-dark">Panel de Control</h2>
+            <div id="estadoSistema" class="estado-desconectado">
+                <i class="fa fa-circle mr-1"></i> Sin conexión
+            </div>
+        </div>
+
+        <!-- Área de visualización del número/mensaje -->
+        <div class="bg-slate-50 border border-slate-200 rounded-xl p-6 mb-6 text-center">
+            <p class="text-sm text-slate-500 mb-2">Estado actual</p>
+            <div id="mensajeActual" class="text-4xl font-bold text-primary break-words">ESPERANDO...</div>
+        </div>
+
+        <!-- Botones de navegación -->
+        <div class="flex justify-center gap-8 mb-8">
+            <button id="btnAnterior" class="btn-nav bg-slate-200 hover:bg-slate-300 text-dark disabled:opacity-40 disabled:cursor-not-allowed">
+                <i class="fa fa-arrow-left"></i>
+            </button>
+            <button id="btnSiguiente" class="btn-nav bg-slate-200 hover:bg-slate-300 text-dark disabled:opacity-40 disabled:cursor-not-allowed">
+                <i class="fa fa-arrow-right"></i>
+            </button>
+        </div>
+
+        <!-- Botones principales -->
+        <div class="grid grid-cols-1 gap-4 mb-4">
+            <button id="btnLlamar" class="btn btn-lg bg-success text-white hover:bg-success/90 disabled:opacity-40 disabled:cursor-not-allowed">
+                <i class="fa fa-phone"></i> Llamar siguiente
+            </button>
+            
+            <button id="btnReiniciar" class="btn bg-warning text-dark hover:bg-warning/90 disabled:opacity-40 disabled:cursor-not-allowed">
+                <i class="fa fa-refresh"></i> Reiniciar sistema
+            </button>
+        </div>
+
+        <!-- Configuración rápida -->
+        <div class="mt-6 p-4 bg-slate-50 rounded-lg">
+            <p class="text-sm text-slate-600 mb-2">Configuración:</p>
+            <input type="text" id="ipServidor" value="10.122.40.3" 
+                   class="w-full p-2 border border-slate-300 rounded mb-2 text-sm" 
+                   placeholder="IP del servidor">
+            <select id="nombreBox" class="w-full p-2 border border-slate-300 rounded text-sm">
+                <option value="BOX 1">BOX 1</option>
+                <option value="BOX 2">BOX 2</option>
+                <option value="BOX 3">BOX 3</option>
+                <option value="BOX 4">BOX 4</option>
+                <option value="BOX 5">BOX 5</option>
+                <option value="BOX 6">BOX 6</option>
+                <option value="BOX 7">BOX 7</option>
+                <option value="BOX 8">BOX 8</option>
+                <option value="BOX 9">BOX 9</option>
+                <option value="BOX 10">BOX 10</option>
+            </select>
+        </div>
+
+        <!-- Área de mensajes -->
+        <div id="mensajeSistema" class="mt-4 p-3 rounded-lg text-center text-sm hidden"></div>
+    </div>
+
+    <script>
+        // --------------------------
+        // CONFIGURACIÓN
+        // --------------------------
+        let IP_SERVIDOR = document.getElementById('ipServidor').value;
+        const PUERTO_WEB = 8081;
+        let sistemaConectado = false;
+
+        // Elementos
+        const mensajeActualEl = document.getElementById('mensajeActual');
+        const estadoEl = document.getElementById('estadoSistema');
+        const mensajeSistemaEl = document.getElementById('mensajeSistema');
+        const btnAnterior = document.getElementById('btnAnterior');
+        const btnSiguiente = document.getElementById('btnSiguiente');
+        const btnLlamar = document.getElementById('btnLlamar');
+        const btnReiniciar = document.getElementById('btnReiniciar');
+        
+        // Elementos del modal
+        const modalConfirmacion = document.getElementById('modalConfirmacion');
+        const btnConfirmarReinicio = document.getElementById('btnConfirmarReinicio');
+        const btnCancelarReinicio = document.getElementById('btnCancelarReinicio');
+
+        // --------------------------
+        // FUNCIONES DE CONEXIÓN
+        // --------------------------
+
+        // Actualizar IP si cambia
+        document.getElementById('ipServidor').addEventListener('change', (e) => {
+            IP_SERVIDOR = e.target.value.trim();
+            verificarConexion();
+        });
+
+        // Verificar conexión y obtener estado actual
+        async function verificarConexion() {
+            try {
+                const respuesta = await fetch(`http://${IP_SERVIDOR}:${PUERTO_WEB}/`, { 
+                    method: 'GET',
+                    cache: 'no-cache'
+                });
+                
+                if (respuesta.ok) {
+                    sistemaConectado = true;
+                    actualizarEstadoUI(true);
+                    await obtenerEstadoActual();
+                } else {
+                    throw new Error("Sin respuesta");
+                }
+            } catch (error) {
+                sistemaConectado = false;
+                actualizarEstadoUI(false);
+                mensajeActualEl.textContent = "SIN CONEXIÓN";
+                console.error("Error de conexión:", error);
+            }
+        }
+
+        // Extraer el mensaje actual del HTML del servidor
+        async function obtenerEstadoActual() {
+            try {
+                const respuesta = await fetch(`http://${IP_SERVIDOR}:${PUERTO_WEB}/`);
+                const html = await respuesta.text();
+                
+                // Extraer contenido del div mensaje
+                const inicio = html.indexOf("<div class='mensaje'>") + 20;
+                const fin = html.indexOf("</div>", inicio);
+                
+                if (inicio > 20 && fin > inicio) {
+                    const mensaje = html.substring(inicio, fin).replace(/<br>/g, ' ');
+                    mensajeActualEl.textContent = mensaje;
+                }
+            } catch (error) {
+                console.warn("No se pudo obtener el estado:", error);
+            }
+        }
+
+        // --------------------------
+        // ACCIONES DEL SISTEMA
+        // --------------------------
+
+        async function accionAnterior() {
+            if (!sistemaConectado) return;
+            try {
+                await fetch(`http://${IP_SERVIDOR}:${PUERTO_WEB}/anterior`);
+                mostrarMensaje("🔙 Retrocedido correctamente", "success");
+                setTimeout(obtenerEstadoActual, 300);
+            } catch (error) {
+                mostrarMensaje("❌ No se pudo retroceder", "danger");
+            }
+        }
+
+        async function accionSiguiente() {
+            if (!sistemaConectado) return;
+            try {
+                await fetch(`http://${IP_SERVIDOR}:${PUERTO_WEB}/siguiente`);
+                mostrarMensaje("➡️ Avanzado correctamente", "success");
+                setTimeout(obtenerEstadoActual, 300);
+            } catch (error) {
+                mostrarMensaje("❌ No se pudo avanzar", "danger");
+            }
+        }
+
+        async function accionLlamar() {
+            if (!sistemaConectado) return;
+            
+            const nombreBox = document.getElementById('nombreBox').value;
+            
+            try {
+                await fetch(`http://${IP_SERVIDOR}:${PUERTO_WEB}/llamar?box=${encodeURIComponent(nombreBox)}`);
+                mostrarMensaje(`✅ Llamada enviada desde ${nombreBox}`, "success");
+                setTimeout(obtenerEstadoActual, 300);
+            } catch (error) {
+                mostrarMensaje("❌ No se pudo realizar la llamada", "danger");
+            }
+        }
+
+        // Mostrar modal - FUNCIÓN CORREGIDA
+        function accionReiniciar() {
+            console.log("Botón reiniciar presionado"); // Para verificar que se ejecuta
+            if (!sistemaConectado) {
+                mostrarMensaje("❌ Sin conexión al servidor", "danger");
+                return;
+            }
+            modalConfirmacion.style.display = "flex";
+        }
+
+        // Ejecutar reinicio
+        async function ejecutarReinicio() {
+            try {
+                await fetch(`http://${IP_SERVIDOR}:${PUERTO_WEB}/reiniciar`);
+                mostrarMensaje("🔄 Sistema reiniciado correctamente", "success");
+                setTimeout(obtenerEstadoActual, 300);
+            } catch (error) {
+                mostrarMensaje("❌ No se pudo reiniciar", "danger");
+            } finally {
+                cerrarModal();
+            }
+        }
+
+        // Cerrar modal
+        function cerrarModal() {
+            modalConfirmacion.style.display = "none";
+        }
+
+        // --------------------------
+        // FUNCIONES DE INTERFAZ
+        // --------------------------
+        function actualizarEstadoUI(conectado) {
+            if (conectado) {
+                estadoEl.className = "estado-conectado";
+                estadoEl.innerHTML = '<i class="fa fa-circle mr-1"></i> Conectado';
+                btnAnterior.disabled = false;
+                btnSiguiente.disabled = false;
+                btnLlamar.disabled = false;
+                btnReiniciar.disabled = false;
+            } else {
+                estadoEl.className = "estado-desconectado";
+                estadoEl.innerHTML = '<i class="fa fa-circle mr-1"></i> Sin conexión';
+                btnAnterior.disabled = true;
+                btnSiguiente.disabled = true;
+                btnLlamar.disabled = true;
+                btnReiniciar.disabled = true;
+            }
+        }
+
+        function mostrarMensaje(texto, tipo) {
+            mensajeSistemaEl.textContent = texto;
+            mensajeSistemaEl.classList.remove('hidden', 'bg-green-100', 'text-green-800', 'bg-red-100', 'text-red-800', 'bg-yellow-100', 'text-yellow-800');
+            
+            if (tipo === "success") mensajeSistemaEl.classList.add('bg-green-100', 'text-green-800');
+            if (tipo === "danger") mensajeSistemaEl.classList.add('bg-red-100', 'text-red-800');
+            if (tipo === "warning") mensajeSistemaEl.classList.add('bg-yellow-100', 'text-yellow-800');
+            
+            mensajeSistemaEl.classList.remove('hidden');
+            setTimeout(() => mensajeSistemaEl.classList.add('hidden'), 3000);
+        }
+
+        // --------------------------
+        // EVENTOS
+        // --------------------------
+        btnAnterior.addEventListener('click', accionAnterior);
+        btnSiguiente.addEventListener('click', accionSiguiente);
+        btnLlamar.addEventListener('click', accionLlamar);
+        btnReiniciar.addEventListener('click', accionReiniciar);
+        
+        btnConfirmarReinicio.addEventListener('click', ejecutarReinicio);
+        btnCancelarReinicio.addEventListener('click', cerrarModal);
+        
+        // Cerrar al hacer clic fuera
+        modalConfirmacion.addEventListener('click', function(e) {
+            if (e.target === this) cerrarModal();
+        });
+
+        // Inicio
+        window.addEventListener('load', () => {
+            verificarConexion();
+            setInterval(verificarConexion, 2000);
+        });
+    </script>
+</body>
+</html>
