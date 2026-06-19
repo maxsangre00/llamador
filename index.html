@@ -67,6 +67,10 @@
             .btn-no {
                 @apply px-6 py-3 rounded-lg font-medium bg-gray-300 text-gray-800 hover:bg-gray-400 transition-all cursor-pointer;
             }
+            /* Estilos para el historial */
+            .item-historial {
+                @apply p-2 bg-white rounded border border-slate-200 text-sm;
+            }
         }
     </style>
 </head>
@@ -126,7 +130,7 @@
         <!-- Configuración rápida -->
         <div class="mt-6 p-4 bg-slate-50 rounded-lg">
             <p class="text-sm text-slate-600 mb-2">Configuración:</p>
-            <input type="text" id="ipServidor" value="10.122.40.3" 
+            <input type="text" id="ipServidor" value="192.168.0.3" 
                    class="w-full p-2 border border-slate-300 rounded mb-2 text-sm" 
                    placeholder="IP del servidor">
             <select id="nombreBox" class="w-full p-2 border border-slate-300 rounded text-sm">
@@ -137,10 +141,18 @@
                 <option value="BOX 5">BOX 5</option>
                 <option value="BOX 6">BOX 6</option>
                 <option value="BOX 7">BOX 7</option>
-                <option value="BOX 8">BOX 8</option>
-                <option value="BOX 9">BOX 9</option>
-                <option value="BOX 10">BOX 10</option>
+                <option value="Matrinio Ofi. Nº1">Matrimonio Ofi. Nº1</option>
+                <option value="Nacimiento Ofi. Nº2">Nacimiento Ofi. Nº2</option>
+                <option value="Defuncion Ofi. Nº3">Defuncion Ofi. Nº3</option>
             </select>
+        </div>
+
+        <!-- 📋 Historial de llamados -->
+        <div class="mt-6 p-4 bg-slate-50 rounded-lg">
+            <h4 class="text-sm font-semibold text-slate-700 mb-3 border-b pb-2">Últimos llamados</h4>
+            <div id="historialLlamados" class="max-h-44 overflow-y-auto text-sm space-y-2">
+                <div class="text-slate-400 italic text-center py-4">Sin llamadas registradas</div>
+            </div>
         </div>
 
         <!-- Área de mensajes -->
@@ -159,6 +171,7 @@
         const mensajeActualEl = document.getElementById('mensajeActual');
         const estadoEl = document.getElementById('estadoSistema');
         const mensajeSistemaEl = document.getElementById('mensajeSistema');
+        const historialLlamadosEl = document.getElementById('historialLlamados');
         const btnAnterior = document.getElementById('btnAnterior');
         const btnSiguiente = document.getElementById('btnSiguiente');
         const btnLlamar = document.getElementById('btnLlamar');
@@ -179,18 +192,19 @@
             verificarConexion();
         });
 
-        // Verificar conexión y obtener estado actual
+        // Verificar conexión y obtener estado actual + historial
         async function verificarConexion() {
             try {
                 const respuesta = await fetch(`http://${IP_SERVIDOR}:${PUERTO_WEB}/`, { 
                     method: 'GET',
-                    cache: 'no-cache'
+                    cache: 'no-cache',
+                    mode: 'cors'
                 });
                 
                 if (respuesta.ok) {
                     sistemaConectado = true;
                     actualizarEstadoUI(true);
-                    await obtenerEstadoActual();
+                    await obtenerEstadoYHistorial();
                 } else {
                     throw new Error("Sin respuesta");
                 }
@@ -198,24 +212,41 @@
                 sistemaConectado = false;
                 actualizarEstadoUI(false);
                 mensajeActualEl.textContent = "SIN CONEXIÓN";
+                historialLlamadosEl.innerHTML = '<div class="text-slate-400 italic text-center py-4">Sin conexión</div>';
                 console.error("Error de conexión:", error);
             }
         }
 
-        // Extraer el mensaje actual del HTML del servidor
-        async function obtenerEstadoActual() {
+        // Extraer mensaje actual y el historial completo
+        async function obtenerEstadoYHistorial() {
             try {
                 const respuesta = await fetch(`http://${IP_SERVIDOR}:${PUERTO_WEB}/`);
                 const html = await respuesta.text();
                 
-                // Extraer contenido del div mensaje
-                const inicio = html.indexOf("<div class='mensaje'>") + 20;
-                const fin = html.indexOf("</div>", inicio);
+                // Extraer mensaje actual
+                const inicioMensaje = html.indexOf("<div class='mensaje'>") + 20;
+                const finMensaje = html.indexOf("</div>", inicioMensaje);
                 
-                if (inicio > 20 && fin > inicio) {
-                    const mensaje = html.substring(inicio, fin).replace(/<br>/g, ' ');
+                if (inicioMensaje > 20 && finMensaje > inicioMensaje) {
+                    const mensaje = html.substring(inicioMensaje, finMensaje).replace(/<br>/g, ' ');
                     mensajeActualEl.textContent = mensaje;
                 }
+
+                // Extraer y mostrar historial
+                const inicioHistorial = html.indexOf("<div class='lista-historial'>") + 29;
+                const finHistorial = html.indexOf("</div>", inicioHistorial);
+                
+                if (inicioHistorial > 29 && finHistorial > inicioHistorial) {
+                    let contenidoHistorial = html.substring(inicioHistorial, finHistorial);
+                    
+                    if (contenidoHistorial.includes("Sin llamadas registradas")) {
+                        historialLlamadosEl.innerHTML = '<div class="text-slate-400 italic text-center py-4">Sin llamadas registradas</div>';
+                    } else {
+                        contenidoHistorial = contenidoHistorial.replace(/<div class='item-historial'>/g, '<div class="item-historial">');
+                        historialLlamadosEl.innerHTML = contenidoHistorial;
+                    }
+                }
+
             } catch (error) {
                 console.warn("No se pudo obtener el estado:", error);
             }
@@ -230,7 +261,7 @@
             try {
                 await fetch(`http://${IP_SERVIDOR}:${PUERTO_WEB}/anterior`);
                 mostrarMensaje("🔙 Retrocedido correctamente", "success");
-                setTimeout(obtenerEstadoActual, 300);
+                setTimeout(obtenerEstadoYHistorial, 300);
             } catch (error) {
                 mostrarMensaje("❌ No se pudo retroceder", "danger");
             }
@@ -241,7 +272,7 @@
             try {
                 await fetch(`http://${IP_SERVIDOR}:${PUERTO_WEB}/siguiente`);
                 mostrarMensaje("➡️ Avanzado correctamente", "success");
-                setTimeout(obtenerEstadoActual, 300);
+                setTimeout(obtenerEstadoYHistorial, 300);
             } catch (error) {
                 mostrarMensaje("❌ No se pudo avanzar", "danger");
             }
@@ -253,17 +284,15 @@
             const nombreBox = document.getElementById('nombreBox').value;
             
             try {
-                await fetch(`http://${IP_SERVIDOR}:${PUERTO_WEB}/llamar?box=${encodeURIComponent(nombreBox)}`);
+                await fetch(`http://${IP_SERVIDOR}:${PUERTO_WEB}/llamar?oficina=${encodeURIComponent(nombreBox)}`);
                 mostrarMensaje(`✅ Llamada enviada desde ${nombreBox}`, "success");
-                setTimeout(obtenerEstadoActual, 300);
+                setTimeout(obtenerEstadoYHistorial, 300);
             } catch (error) {
                 mostrarMensaje("❌ No se pudo realizar la llamada", "danger");
             }
         }
 
-        // Mostrar modal - FUNCIÓN CORREGIDA
         function accionReiniciar() {
-            console.log("Botón reiniciar presionado"); // Para verificar que se ejecuta
             if (!sistemaConectado) {
                 mostrarMensaje("❌ Sin conexión al servidor", "danger");
                 return;
@@ -271,12 +300,11 @@
             modalConfirmacion.style.display = "flex";
         }
 
-        // Ejecutar reinicio
         async function ejecutarReinicio() {
             try {
                 await fetch(`http://${IP_SERVIDOR}:${PUERTO_WEB}/reiniciar`);
                 mostrarMensaje("🔄 Sistema reiniciado correctamente", "success");
-                setTimeout(obtenerEstadoActual, 300);
+                setTimeout(obtenerEstadoYHistorial, 300);
             } catch (error) {
                 mostrarMensaje("❌ No se pudo reiniciar", "danger");
             } finally {
@@ -284,7 +312,6 @@
             }
         }
 
-        // Cerrar modal
         function cerrarModal() {
             modalConfirmacion.style.display = "none";
         }
@@ -333,7 +360,6 @@
         btnConfirmarReinicio.addEventListener('click', ejecutarReinicio);
         btnCancelarReinicio.addEventListener('click', cerrarModal);
         
-        // Cerrar al hacer clic fuera
         modalConfirmacion.addEventListener('click', function(e) {
             if (e.target === this) cerrarModal();
         });

@@ -26,3 +26,4 @@ C:\Users\Pdecreto\Desktop\llamador\Servidor\obj\Debug\net10.0\refint\Servidor.dl
 C:\Users\Pdecreto\Desktop\llamador\Servidor\obj\Debug\net10.0\Servidor.pdb
 C:\Users\Pdecreto\Desktop\llamador\Servidor\obj\Debug\net10.0\Servidor.genruntimeconfig.cache
 C:\Users\Pdecreto\Desktop\llamador\Servidor\obj\Debug\net10.0\ref\Servidor.dll
+C:\Users\Pdecreto\Desktop\llamador\Servidor\obj\Debug\net10.0\Servidor.sourcelink.json

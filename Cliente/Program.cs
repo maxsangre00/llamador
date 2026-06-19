@@ -4,7 +4,7 @@ using System.Text;
 using System.Net.Http;
 
 // ⚠️ PONÉ TU IP DEL SERVIDOR
-string IPServidor = "10.122.40.3"; // Cambiá por tu IP
+string IPServidor = "192.168.0.3"; // Cambiá por tu IP
 int Puerto = 8888;
 
 string NombreBox = "BOX 1"; // Cambiá a BOX 2 para la otra

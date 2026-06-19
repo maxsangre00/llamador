@@ -26,3 +26,4 @@ C:\Users\Pdecreto\Desktop\llamador\Cliente\obj\Debug\net10.0\refint\Cliente.dll
 C:\Users\Pdecreto\Desktop\llamador\Cliente\obj\Debug\net10.0\Cliente.pdb
 C:\Users\Pdecreto\Desktop\llamador\Cliente\obj\Debug\net10.0\Cliente.genruntimeconfig.cache
 C:\Users\Pdecreto\Desktop\llamador\Cliente\obj\Debug\net10.0\ref\Cliente.dll
+C:\Users\Pdecreto\Desktop\llamador\Cliente\obj\Debug\net10.0\Cliente.sourcelink.json
